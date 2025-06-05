@@ -37,10 +37,6 @@ import androidx.browser.trusted.TrustedWebActivityIntentBuilder;
 
 import com.google.androidbrowserhelper.BuildConfig;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-
 /**
  * Encapsulates the steps necessary to launch a Trusted Web Activity, such as establishing a
  * connection with {@link CustomTabsService}.
@@ -48,7 +44,7 @@ import java.util.Random;
 public class TwaLauncher {
     private static final String TAG = "TwaLauncher";
 
-    private static final Map<Integer, Integer> mTaskIdToSessionId = new HashMap<>();
+    private static final int DEFAULT_SESSION_ID = 96375;
 
     private static final String EXTRA_STARTUP_UPTIME_MILLIS =
             "org.chromium.chrome.browser.customtabs.trusted.STARTUP_UPTIME_MILLIS";
@@ -122,19 +118,11 @@ public class TwaLauncher {
     }
 
     /**
-     * Same as above, but also allows to specify a task id to distinguish several sessions running
-     * for the same TWA app.
-     */
-    public TwaLauncher(Context context, @Nullable Integer taskId) {
-        this(context, null, taskId);
-    }
-
-    /**
      * Same as above, but also allows to specify a browser to launch. If specified, it is assumed to
      * support TWAs.
      */
-    public TwaLauncher(Context context, @Nullable String providerPackage, @Nullable Integer taskId) {
-        this(context, providerPackage, taskId,
+    public TwaLauncher(Context context, @Nullable String providerPackage) {
+        this(context, providerPackage, DEFAULT_SESSION_ID,
                 new SharedPreferencesTokenStore(context));
     }
 
@@ -142,10 +130,10 @@ public class TwaLauncher {
      * Same as above, but also accepts a session id. This allows to launch multiple TWAs in the same
      * task.
      */
-    public TwaLauncher(Context context, @Nullable String providerPackage, @Nullable Integer taskId,
+    public TwaLauncher(Context context, @Nullable String providerPackage, int sessionId,
                        TokenStore tokenStore) {
         mContext = context;
-        mSessionId = makeSessionId(taskId);
+        mSessionId = sessionId;
         mTokenStore = tokenStore;
         if (providerPackage == null) {
             TwaProviderPicker.Action action =
@@ -156,19 +144,6 @@ public class TwaLauncher {
             mProviderPackage = providerPackage;
             mLaunchMode = TwaProviderPicker.LaunchMode.TRUSTED_WEB_ACTIVITY;
         }
-    }
-
-    private static Integer makeSessionId(@Nullable Integer taskId) {
-        if(taskId == null) return Integer.MAX_VALUE;
-
-        Integer sessionId = mTaskIdToSessionId.get(taskId);
-        if(sessionId == null) {
-            Random random = new Random();
-            sessionId = random.nextInt(Integer.MAX_VALUE);
-            mTaskIdToSessionId.put(taskId, sessionId);
-        }
-
-        return sessionId;
     }
 
     /**
